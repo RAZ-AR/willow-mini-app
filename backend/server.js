@@ -198,16 +198,31 @@ app.post('/api/auth/telegram', async (req, res) => {
             user = JSON.parse(params.get('user'));
         }
 
-        let dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
-        dbUser = dbUser.rows[0];
+        let dbUser;
+        
+        // Skip database operations if in test mode or no DATABASE_URL
+        if (initData === 'test' || !process.env.DATABASE_URL) {
+            console.log('Test mode: Using mock user data');
+            dbUser = {
+                telegram_id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                username: user.username,
+                stars: 10,
+                card_number: 12345678
+            };
+        } else {
+            dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
+            dbUser = dbUser.rows[0];
 
-        if (!dbUser) {
-            const card_number = await generateUniqueCardNumber();
-            const result = await pool.query(
-                'INSERT INTO users (telegram_id, first_name, last_name, username, language_code, card_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-                [user.id, user.first_name, user.last_name || null, user.username || null, user.language_code || 'en', card_number]
-            );
-            dbUser = result.rows[0];
+            if (!dbUser) {
+                const card_number = await generateUniqueCardNumber();
+                const result = await pool.query(
+                    'INSERT INTO users (telegram_id, first_name, last_name, username, language_code, card_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+                    [user.id, user.first_name, user.last_name || null, user.username || null, user.language_code || 'en', card_number]
+                );
+                dbUser = result.rows[0];
+            }
         }
 
         res.json(dbUser);
@@ -288,43 +303,51 @@ app.post('/api/order', async (req, res) => {
         const short_id = order_id.split('-')[0].toUpperCase();
         const due_at = new Date(Date.now() + eta_minutes * 60 * 1000).toISOString();
 
-        // Database transaction
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
+        let dbUser;
+        
+        // Skip database operations if in test mode or no DATABASE_URL
+        if (initData === 'test' || !process.env.DATABASE_URL) {
+            console.log('Test mode: Skipping database operations');
+            dbUser = { rows: [{ stars: 10 }] }; // Mock user with 10 stars
+        } else {
+            // Database transaction
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
 
-            // Insert order
-            await client.query(
-                'INSERT INTO orders (id, short_id, user_id, total_amount, stars_added, eta_minutes, due_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                [order_id, short_id, user.id, total_amount, stars_added, eta_minutes, due_at]
-            );
-
-            // Update user stars
-            await client.query('UPDATE users SET stars = stars + $1 WHERE telegram_id = $2', [stars_added, user.id]);
-
-            // Insert transaction
-            await client.query(
-                'INSERT INTO transactions (id, user_id, type, stars_change, order_id, description) VALUES ($1, $2, $3, $4, $5, $6)',
-                [crypto.randomUUID(), user.id, 'accrual', stars_added, order_id, `Order ${short_id}`]
-            );
-
-            // Insert order items
-            for (const item of validatedItems) {
+                // Insert order
                 await client.query(
-                    'INSERT INTO order_items (id, order_id, item_id, quantity, unit_price) VALUES ($1, $2, $3, $4, $5)',
-                    [crypto.randomUUID(), order_id, item.id, item.quantity, item.unit_price]
+                    'INSERT INTO orders (id, short_id, user_id, total_amount, stars_added, eta_minutes, due_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [order_id, short_id, user.id, total_amount, stars_added, eta_minutes, due_at]
                 );
+
+                // Update user stars
+                await client.query('UPDATE users SET stars = stars + $1 WHERE telegram_id = $2', [stars_added, user.id]);
+
+                // Insert transaction
+                await client.query(
+                    'INSERT INTO transactions (id, user_id, type, stars_change, order_id, description) VALUES ($1, $2, $3, $4, $5, $6)',
+                    [crypto.randomUUID(), user.id, 'accrual', stars_added, order_id, `Order ${short_id}`]
+                );
+
+                // Insert order items
+                for (const item of validatedItems) {
+                    await client.query(
+                        'INSERT INTO order_items (id, order_id, item_id, quantity, unit_price) VALUES ($1, $2, $3, $4, $5)',
+                        [crypto.randomUUID(), order_id, item.id, item.quantity, item.unit_price]
+                    );
+                }
+
+                await client.query('COMMIT');
+            } catch (error) {
+                await client.query('ROLLBACK');
+                throw error;
+            } finally {
+                client.release();
             }
 
-            await client.query('COMMIT');
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
+            dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
         }
-
-        const dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
 
         // Notify admin channel (if configured)
         if (process.env.ADMIN_CHANNEL_ID && process.env.BOT_TOKEN) {
