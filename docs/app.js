@@ -10,12 +10,16 @@ const i18n = {
         total: 'Total',
         order: 'Order',
         ingredients: 'Ingredients',
+        table: 'Table',
+        payment: 'Payment',
+        stars_needed: 'Stars needed',
         confirm_redeem: 'Are you sure you want to redeem this reward?',
         confirm_order: 'Are you sure you want to place this order?',
         order_placed: 'Order placed successfully!',
         redeem_success: 'Reward redeemed!',
         error_title: 'Error',
         error_default: 'An unknown error occurred.',
+        not_enough_stars: 'Not enough stars for this order',
     },
     ru: {
         your_card: 'Ваша карта',
@@ -26,12 +30,16 @@ const i18n = {
         total: 'Итого',
         order: 'Заказать',
         ingredients: 'Состав',
+        table: 'Стол',
+        payment: 'Оплата',
+        stars_needed: 'Нужно звёзд',
         confirm_redeem: 'Вы уверены, что хотите использовать эту награду?',
         confirm_order: 'Вы уверены, что хотите сделать заказ?',
         order_placed: 'Заказ успешно размещен!',
         redeem_success: 'Награда получена!',
         error_title: 'Ошибка',
         error_default: 'Произошла неизвестная ошибка.',
+        not_enough_stars: 'Недостаточно звёзд для заказа',
     },
     sr: {
         your_card: 'Vaša kartica',
@@ -42,12 +50,16 @@ const i18n = {
         total: 'Ukupno',
         order: 'Naruči',
         ingredients: 'Sastojci',
+        table: 'Sto',
+        payment: 'Plaćanje',
+        stars_needed: 'Potrebno zvezda',
         confirm_redeem: 'Da li ste sigurni da želite da iskoristite ovu nagradu?',
         confirm_order: 'Da li ste sigurni da želite da naručite?',
         order_placed: 'Narudžba je uspešno poslata!',
         redeem_success: 'Nagrada je iskorišćena!',
         error_title: 'Greška',
         error_default: 'Došlo je do nepoznate greške.',
+        not_enough_stars: 'Nema dovoljno zvezda za narudžbu',
     },
 };
 
@@ -90,6 +102,14 @@ const App = {
         document.getElementById('order-button').addEventListener('click', this.handleOrder.bind(this));
         document.getElementById('rewards-section').addEventListener('click', this.handleRedeem.bind(this));
         document.querySelector('.close-button').addEventListener('click', () => this.toggleModal(false));
+        
+        // Payment method change handler
+        document.addEventListener('change', (event) => {
+            if (event.target.name === 'payment') {
+                this.updateCartUI();
+            }
+        });
+        
         window.addEventListener('click', (event) => {
             if (event.target == document.getElementById('ingredients-modal')) {
                 this.toggleModal(false);
@@ -264,6 +284,19 @@ const App = {
         document.getElementById('cart-total').textContent = total;
         document.getElementById('cart-item-count').textContent = itemCount;
 
+        // Calculate stars needed (1 star per 350 RSD)
+        const starsNeeded = Math.ceil(total / 350);
+        document.getElementById('stars-needed').textContent = starsNeeded;
+
+        // Show/hide stars calculation based on payment method
+        const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value || 'cash';
+        const starsCalculation = document.getElementById('stars-calculation');
+        if (paymentMethod === 'stars' && total > 0) {
+            starsCalculation.style.display = 'block';
+        } else {
+            starsCalculation.style.display = 'none';
+        }
+
         const footer = document.getElementById('cart-footer');
         footer.style.display = itemCount > 0 ? 'flex' : 'none';
     },
@@ -352,6 +385,26 @@ const App = {
         if (items.length === 0) return;
 
         const eta_minutes = parseInt(document.querySelector('input[name="eta"]:checked').value, 10);
+        const table_number = document.getElementById('table-number').value;
+        const payment_method = document.querySelector('input[name="payment"]:checked').value;
+        
+        // Calculate total and stars needed
+        let total = 0;
+        const menuMap = new Map(this.state.menu.items.map(i => [i.id, i]));
+        for (const [id, qty] of Object.entries(this.state.cart)) {
+            const menuItem = menuMap.get(id);
+            if (menuItem) {
+                total += menuItem.price * qty;
+            }
+        }
+        
+        const starsNeeded = Math.ceil(total / 350);
+        
+        // Check if user has enough stars for stars payment
+        if (payment_method === 'stars' && this.state.user.stars < starsNeeded) {
+            this.showAlert(this.t('not_enough_stars'));
+            return;
+        }
 
         this.tg.showConfirm(this.t('confirm_order'), async (confirmed) => {
             if (confirmed) {
@@ -359,11 +412,20 @@ const App = {
                     const result = await this.apiCall('/api/order', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ initData: this.tg.initData, items, eta_minutes }),
+                        body: JSON.stringify({ 
+                            initData: this.tg.initData, 
+                            items, 
+                            eta_minutes,
+                            table_number,
+                            payment_method,
+                            stars_needed: starsNeeded
+                        }),
                     });
                     this.tg.showPopup({ message: this.t('order_placed') });
                     this.state.cart = {};
-                    this.state.user.stars = result.new_stars;
+                    if (result.new_stars !== undefined) {
+                        this.state.user.stars = result.new_stars;
+                    }
                     this.render();
                 } catch (error) {
                     // showAlert is handled by apiCall

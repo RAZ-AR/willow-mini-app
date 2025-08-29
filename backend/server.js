@@ -203,13 +203,19 @@ app.post('/api/auth/telegram', async (req, res) => {
 // POST /api/order
 app.post('/api/order', async (req, res) => {
     try {
-        const { initData, items, eta_minutes } = req.body;
+        const { initData, items, eta_minutes, table_number, payment_method } = req.body;
 
         if (!initData || !items || !eta_minutes || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
-        if (![10, 20, 30].includes(eta_minutes)) {
+        if (![0, 10, 20].includes(eta_minutes)) {
             return res.status(400).json({ error: 'Invalid ETA' });
+        }
+        if (!table_number || (table_number !== 'takeaway' && (!Number.isInteger(parseInt(table_number)) || parseInt(table_number) < 1 || parseInt(table_number) > 10))) {
+            return res.status(400).json({ error: 'Invalid table number' });
+        }
+        if (!['cash', 'stars'].includes(payment_method)) {
+            return res.status(400).json({ error: 'Invalid payment method' });
         }
 
         const isValid = await isValidTelegramInitData(initData, process.env.BOT_TOKEN);
@@ -298,6 +304,8 @@ app.post('/api/order', async (req, res) => {
                     total_amount,
                     stars_added,
                     items: validatedItems,
+                    table_number,
+                    payment_method,
                 };
                 await notifyAdminChannel(orderData);
             } catch (notifyError) {
@@ -533,7 +541,42 @@ async function handleCallbackQuery(callbackQuery) {
 }
 
 async function notifyAdminChannel(orderData) {
-    // Implementation for admin notifications would go here
+    const { short_id, user, eta_minutes, total_amount, stars_added, items, table_number, payment_method } = orderData;
+    
+    // Format ETA
+    const etaText = eta_minutes === 0 ? 'Now' : `${eta_minutes} minutes`;
+    
+    // Format table
+    const tableText = table_number === 'takeaway' ? 'Takeaway' : `Table ${table_number}`;
+    
+    // Format payment method
+    const paymentText = payment_method === 'cash' ? 'Cash' : `Stars (${Math.ceil(total_amount / 350)} ⭐)`;
+    
+    // Format items
+    const itemsList = items.map(item => `• ${item.name} x${item.quantity} - ${item.price} RSD`).join('\n');
+    
+    // Build notification message
+    const message = `🍽️ **NEW ORDER #${short_id}**
+
+👤 **Customer:** ${user.first_name} ${user.last_name || ''}
+📱 **Telegram:** @${user.username || 'N/A'}
+📍 **Location:** ${tableText}
+⏰ **ETA:** ${etaText}
+💳 **Payment:** ${paymentText}
+
+📋 **Order Details:**
+${itemsList}
+
+💰 **Total:** ${total_amount} RSD
+⭐ **Stars Earned:** ${stars_added}
+
+#order #${table_number === 'takeaway' ? 'takeaway' : 'table' + table_number}`;
+
+    await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
+        chat_id: process.env.ADMIN_CHANNEL_ID,
+        text: message,
+        parse_mode: 'Markdown',
+    });
 }
 
 // Health check endpoint

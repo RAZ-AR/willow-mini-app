@@ -75,14 +75,40 @@
 
         <!-- Sticky Footer / Cart -->
         <footer id="cart-footer" class="sticky-footer" style="display: none;">
-            <div class="eta-selector">
-                <span data-i18n="eta">ETA</span>:
-                <label><input type="radio" name="eta" value="10"> 10'</label>
-                <label><input type="radio" name="eta" value="20" checked> 20'</label>
-                <label><input type="radio" name="eta" value="30"> 30'</label>
+            <div class="order-options">
+                <div class="table-selector">
+                    <span data-i18n="table">Table</span>:
+                    <select id="table-number">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="takeaway">Takeaway</option>
+                    </select>
+                </div>
+                <div class="eta-selector">
+                    <span data-i18n="eta">ETA</span>:
+                    <label><input type="radio" name="eta" value="0"> Now</label>
+                    <label><input type="radio" name="eta" value="10" checked> 10'</label>
+                    <label><input type="radio" name="eta" value="20"> 20'</label>
+                </div>
+                <div class="payment-selector">
+                    <span data-i18n="payment">Payment</span>:
+                    <label><input type="radio" name="payment" value="cash" checked> Cash</label>
+                    <label><input type="radio" name="payment" value="stars"> Stars</label>
+                </div>
             </div>
             <div class="cart-summary">
-                <span data-i18n="total">Total</span>: <span id="cart-total">0</span> RSD
+                <div><span data-i18n="total">Total</span>: <span id="cart-total">0</span> RSD</div>
+                <div id="stars-calculation" style="display: none;">
+                    <span data-i18n="stars_needed">Stars needed</span>: <span id="stars-needed">0</span> ⭐
+                </div>
             </div>
             <button id="order-button" class="order-button">
                 <span data-i18n="order">Order</span> (<span id="cart-item-count">0</span>)
