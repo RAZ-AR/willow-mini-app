@@ -179,50 +179,22 @@ const App = {
             document.getElementById('loader').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
         } catch (error) {
-            console.error('Menu fetch failed, using mock data:', error);
-            // TEMPORARY: Use mock menu data for testing
-            this.state.menu = {
-                updated_at: new Date().toISOString(),
-                categories: ['Coffee', 'Breakfast', 'Sweets'],
-                items: [
-                    {
-                        id: 'item-coffee-espresso',
-                        category: 'Coffee',
-                        title: { en: 'Espresso', ru: 'Эспрессо', sr: 'Espreso' },
-                        volume: '30ml',
-                        price: 150,
-                        ingredients: 'Arabica beans'
-                    },
-                    {
-                        id: 'item-coffee-americano',
-                        category: 'Coffee', 
-                        title: { en: 'Americano', ru: 'Американо', sr: 'Americano' },
-                        volume: '120ml',
-                        price: 180,
-                        ingredients: 'Espresso + hot water'
-                    },
-                    {
-                        id: 'item-breakfast-croissant',
-                        category: 'Breakfast',
-                        title: { en: 'Croissant', ru: 'Круассан', sr: 'Kroasan' },
-                        volume: '80g',
-                        price: 220,
-                        ingredients: 'Butter pastry'
-                    },
-                    {
-                        id: 'item-sweets-cake',
-                        category: 'Sweets',
-                        title: { en: 'Chocolate Cake', ru: 'Шоколадный торт', sr: 'Čokoladna torta' },
-                        volume: '120g', 
-                        price: 350,
-                        ingredients: 'Dark chocolate, cream'
-                    }
-                ]
-            };
-            this.state.activeCategory = this.state.menu.categories[0] || null;
-            this.render();
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
+            console.error('Could not load menu from Google Sheets:', error);
+            document.getElementById('loader').innerHTML = `
+                <div style="color: #dc3545; text-align: center; padding: 20px;">
+                    <h3>Could not load menu</h3>
+                    <p>Unable to fetch menu from Google Sheets</p>
+                    <p style="font-size: 12px; margin-top: 10px;">
+                        Please make sure:
+                        <br>• Google Sheets table is public
+                        <br>• Table has correct column headers
+                        <br>• Backend can access the CSV export
+                    </p>
+                    <button onclick="location.reload()" style="margin-top: 10px; padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px;">
+                        Retry
+                    </button>
+                </div>
+            `;
         }
     },
 
