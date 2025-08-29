@@ -1,0 +1,549 @@
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const crypto = require('crypto');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Database connection
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Middleware
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'https://raz-ar.github.io',
+    credentials: true
+}));
+app.use(express.json());
+
+// In-memory cache for menu
+let menuCache = {
+    updated_at: null,
+    data: null,
+};
+const MENU_CACHE_TTL_SECONDS = 60;
+
+// Utility functions
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return 'item-' + Math.abs(hash).toString(16);
+}
+
+function parseMenuFromCsv(csvText) {
+    const rows = csvText.split('\n').map(r => r.trim()).filter(Boolean);
+    const headers = rows.shift().split(',').map(h => h.trim().toLowerCase());
+    
+    const items = rows.map(row => {
+        const values = row.split(',').map(v => v.trim());
+        const itemData = headers.reduce((obj, header, index) => {
+            obj[header] = values[index];
+            return obj;
+        }, {});
+
+        const title_en = itemData['английский'];
+        const category = itemData['категория'];
+        const volume = itemData['объем'];
+
+        return {
+            id: simpleHash(category + '|' + title_en + '|' + volume),
+            category: category,
+            title: {
+                en: title_en,
+                ru: itemData['русский'],
+                sr: itemData['сербский'],
+            },
+            volume: volume,
+            price: parseInt(itemData['стоимость (rsd)'], 10) || 0,
+            ingredients: itemData['состав'],
+        };
+    });
+
+    const categories = [...new Set(items.map(item => item.category))];
+
+    return {
+        updated_at: new Date().toISOString(),
+        categories,
+        items,
+    };
+}
+
+async function isValidTelegramInitData(initData, botToken) {
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        params.delete('hash');
+
+        const dataCheckString = Array.from(params.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => `${key}=${value}`)
+            .join('\n');
+
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+        const signature = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+        return hash === signature;
+    } catch (error) {
+        console.error('Telegram validation error:', error);
+        return false;
+    }
+}
+
+async function generateUniqueCardNumber() {
+    while (true) {
+        const card_number = Math.floor(1000 + Math.random() * 9000);
+        const result = await pool.query('SELECT 1 FROM users WHERE card_number = $1', [card_number]);
+        if (result.rows.length === 0) {
+            return card_number;
+        }
+    }
+}
+
+function calculateOrderTotal(orderItems, menuItems) {
+    let total_amount = 0;
+    const validatedItems = [];
+    const menuMap = new Map(menuItems.map(i => [i.id, i]));
+
+    for (const item of orderItems) {
+        const menuItem = menuMap.get(item.id);
+        if (menuItem && item.qty > 0) {
+            total_amount += menuItem.price * item.qty;
+            validatedItems.push({
+                id: item.id,
+                quantity: item.qty,
+                unit_price: menuItem.price,
+            });
+        }
+    }
+    return { total_amount, validatedItems };
+}
+
+async function sendTelegram(method, token, body) {
+    const fetch = (await import('node-fetch')).default;
+    return fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+}
+
+// API Routes
+
+// GET /api/menu
+app.get('/api/menu', async (req, res) => {
+    try {
+        const now = Date.now();
+        if (menuCache.updated_at && (now - menuCache.updated_at) / 1000 < MENU_CACHE_TTL_SECONDS) {
+            return res.json(menuCache.data);
+        }
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(process.env.SHEETS_CSV_URL);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+        }
+        const csvText = await response.text();
+        const parsedMenu = parseMenuFromCsv(csvText);
+
+        menuCache = {
+            updated_at: now,
+            data: parsedMenu,
+        };
+
+        res.json(parsedMenu);
+    } catch (error) {
+        console.error('Error fetching/parsing menu:', error);
+        res.status(500).json({ error: 'Could not fetch menu' });
+    }
+});
+
+// POST /api/auth/telegram
+app.post('/api/auth/telegram', async (req, res) => {
+    try {
+        const { initData } = req.body;
+        if (!initData) {
+            return res.status(400).json({ error: 'initData is required' });
+        }
+
+        const isValid = await isValidTelegramInitData(initData, process.env.BOT_TOKEN);
+        if (!isValid) {
+            return res.status(403).json({ error: 'Invalid initData' });
+        }
+
+        const params = new URLSearchParams(initData);
+        const user = JSON.parse(params.get('user'));
+
+        let dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
+        dbUser = dbUser.rows[0];
+
+        if (!dbUser) {
+            const card_number = await generateUniqueCardNumber();
+            const result = await pool.query(
+                'INSERT INTO users (telegram_id, first_name, last_name, username, language_code, card_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+                [user.id, user.first_name, user.last_name || null, user.username || null, user.language_code || 'en', card_number]
+            );
+            dbUser = result.rows[0];
+        }
+
+        res.json(dbUser);
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(500).json({ error: 'Authentication failed' });
+    }
+});
+
+// POST /api/order
+app.post('/api/order', async (req, res) => {
+    try {
+        const { initData, items, eta_minutes } = req.body;
+
+        if (!initData || !items || !eta_minutes || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        if (![10, 20, 30].includes(eta_minutes)) {
+            return res.status(400).json({ error: 'Invalid ETA' });
+        }
+
+        const isValid = await isValidTelegramInitData(initData, process.env.BOT_TOKEN);
+        if (!isValid) {
+            return res.status(403).json({ error: 'Invalid initData' });
+        }
+
+        const params = new URLSearchParams(initData);
+        const user = JSON.parse(params.get('user'));
+
+        // Get fresh menu data
+        const now = Date.now();
+        if (!menuCache.updated_at || (now - menuCache.updated_at) / 1000 >= MENU_CACHE_TTL_SECONDS) {
+            const fetch = (await import('node-fetch')).default;
+            const response = await fetch(process.env.SHEETS_CSV_URL);
+            if (response.ok) {
+                const csvText = await response.text();
+                menuCache = {
+                    updated_at: now,
+                    data: parseMenuFromCsv(csvText),
+                };
+            }
+        }
+
+        if (!menuCache.data || !menuCache.data.items) {
+            return res.status(503).json({ error: 'Menu is currently unavailable' });
+        }
+
+        const { total_amount, validatedItems } = calculateOrderTotal(items, menuCache.data.items);
+        if (total_amount === 0) {
+            return res.status(400).json({ error: 'Invalid items or quantities' });
+        }
+
+        const stars_added = Math.ceil(total_amount / 350);
+        const order_id = crypto.randomUUID();
+        const short_id = order_id.split('-')[0].toUpperCase();
+        const due_at = new Date(Date.now() + eta_minutes * 60 * 1000).toISOString();
+
+        // Database transaction
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Insert order
+            await client.query(
+                'INSERT INTO orders (id, short_id, user_id, total_amount, stars_added, eta_minutes, due_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [order_id, short_id, user.id, total_amount, stars_added, eta_minutes, due_at]
+            );
+
+            // Update user stars
+            await client.query('UPDATE users SET stars = stars + $1 WHERE telegram_id = $2', [stars_added, user.id]);
+
+            // Insert transaction
+            await client.query(
+                'INSERT INTO transactions (id, user_id, type, stars_change, order_id, description) VALUES ($1, $2, $3, $4, $5, $6)',
+                [crypto.randomUUID(), user.id, 'accrual', stars_added, order_id, `Order ${short_id}`]
+            );
+
+            // Insert order items
+            for (const item of validatedItems) {
+                await client.query(
+                    'INSERT INTO order_items (id, order_id, item_id, quantity, unit_price) VALUES ($1, $2, $3, $4, $5)',
+                    [crypto.randomUUID(), order_id, item.id, item.quantity, item.unit_price]
+                );
+            }
+
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+
+        const dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
+
+        // Notify admin channel (if configured)
+        if (process.env.ADMIN_CHANNEL_ID && process.env.BOT_TOKEN) {
+            try {
+                const orderData = {
+                    order_id,
+                    short_id,
+                    user,
+                    eta_minutes,
+                    due_at,
+                    total_amount,
+                    stars_added,
+                    items: validatedItems,
+                };
+                await notifyAdminChannel(orderData);
+            } catch (notifyError) {
+                console.error('Failed to notify admin:', notifyError);
+            }
+        }
+
+        res.json({
+            ok: true,
+            order_id,
+            due_at,
+            eta_minutes,
+            total_amount,
+            stars_added,
+            new_stars: dbUser.rows[0].stars,
+        });
+    } catch (error) {
+        console.error('Order creation error:', error);
+        res.status(500).json({ error: 'Failed to create order' });
+    }
+});
+
+// POST /api/redeem
+app.post('/api/redeem', async (req, res) => {
+    try {
+        const { telegram_id, rewardKey } = req.body;
+        if (!telegram_id || !rewardKey) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const reward = await pool.query('SELECT * FROM rewards WHERE key = $1', [rewardKey]);
+        if (reward.rows.length === 0) {
+            return res.status(400).json({ error: 'Invalid reward key' });
+        }
+
+        const user = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id]);
+        if (user.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const rewardData = reward.rows[0];
+        const userData = user.rows[0];
+
+        if (userData.stars < rewardData.stars_cost) {
+            return res.status(400).json({ error: 'NOT_ENOUGH_STARS' });
+        }
+
+        const new_total = userData.stars - rewardData.stars_cost;
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            await client.query('UPDATE users SET stars = $1 WHERE telegram_id = $2', [new_total, telegram_id]);
+            await client.query(
+                'INSERT INTO transactions (id, user_id, type, stars_change, reward_key, description) VALUES ($1, $2, $3, $4, $5, $6)',
+                [crypto.randomUUID(), telegram_id, 'redeem', -rewardData.stars_cost, rewardKey, `Redeemed ${rewardData.title}`]
+            );
+            
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+
+        res.json({ ok: true, new_total });
+    } catch (error) {
+        console.error('Redemption error:', error);
+        res.status(500).json({ error: 'Failed to redeem reward' });
+    }
+});
+
+// POST /api/admin/accrue
+app.post('/api/admin/accrue', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || authHeader !== `Bearer ${process.env.ADMIN_BEARER}`) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { by, id, amount, stars } = req.body;
+        if (!by || !id || (!amount && !stars)) {
+            return res.status(400).json({ error: 'Missing params' });
+        }
+
+        let user;
+        if (by === 'card') {
+            const result = await pool.query('SELECT * FROM users WHERE card_number = $1', [id]);
+            user = result.rows[0];
+        } else if (by === 'username') {
+            const result = await pool.query('SELECT * FROM users WHERE username = $1', [id]);
+            user = result.rows[0];
+        } else if (by === 'telegram_id') {
+            const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [id]);
+            user = result.rows[0];
+        } else {
+            return res.status(400).json({ error: "Invalid 'by' parameter" });
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const stars_to_add = stars ? parseInt(stars, 10) : Math.ceil(parseInt(amount, 10) / 350);
+        const description = stars ? `Admin manual add: ${stars} stars` : `Admin amount accrual: ${amount} RSD`;
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            await client.query('UPDATE users SET stars = stars + $1 WHERE telegram_id = $2', [stars_to_add, user.telegram_id]);
+            await client.query(
+                'INSERT INTO transactions (id, user_id, type, stars_change, description) VALUES ($1, $2, $3, $4, $5)',
+                [crypto.randomUUID(), user.telegram_id, 'accrual', stars_to_add, description]
+            );
+            
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+
+        const updatedUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.telegram_id]);
+
+        res.json({ ok: true, user: updatedUser.rows[0] });
+    } catch (error) {
+        console.error('Admin accrue error:', error);
+        res.status(500).json({ error: 'Failed to accrue stars' });
+    }
+});
+
+// Telegram webhook handler
+app.post('/tg/webhook', async (req, res) => {
+    try {
+        const update = req.body;
+
+        if (update.message) {
+            await handleMessage(update.message);
+        } else if (update.channel_post) {
+            await handleChannelPost(update.channel_post);
+        } else if (update.callback_query) {
+            await handleCallbackQuery(update.callback_query);
+        }
+
+        res.send('OK');
+    } catch (error) {
+        console.error('Webhook error:', error);
+        res.status(500).send('Error');
+    }
+});
+
+async function handleMessage(message) {
+    const text = message.text;
+    const chatId = message.chat.id;
+
+    if (text === '/start') {
+        await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
+            chat_id: chatId,
+            text: 'Welcome to Willow Coffee! Click below to open the app.',
+            reply_markup: {
+                inline_keyboard: [[{ text: '☕ Open App', web_app: { url: process.env.WEBAPP_URL } }]],
+            },
+        });
+    } else if (text === '/mycard') {
+        const result = await pool.query('SELECT card_number FROM users WHERE telegram_id = $1', [chatId]);
+        const cardText = result.rows.length > 0 
+            ? `Your loyalty card number is: ${result.rows[0].card_number}` 
+            : 'You don\'t have a card yet. Open the app to get one!';
+        await sendTelegram('sendMessage', process.env.BOT_TOKEN, { chat_id: chatId, text: cardText });
+    }
+}
+
+async function handleChannelPost(post) {
+    if (post.chat.id.toString() !== process.env.ADMIN_CHANNEL_ID?.toString()) return;
+
+    const text = post.text;
+    if (!text) return;
+
+    const [command, id, value] = text.split(' ');
+    if (!['/addamount', '/addstars'].includes(command) || !id || !value) return;
+
+    const by = id.startsWith('@') ? 'username' : 'card';
+    const identifier = id.startsWith('@') ? id.substring(1) : parseInt(id, 10);
+
+    const accruePayload = { by, id: identifier };
+    if (command === '/addamount') {
+        accruePayload.amount = parseInt(value, 10);
+    } else {
+        accruePayload.stars = parseInt(value, 10);
+    }
+
+    try {
+        const req = { 
+            body: accruePayload, 
+            headers: { authorization: `Bearer ${process.env.ADMIN_BEARER}` } 
+        };
+        const res = { 
+            json: (data) => data,
+            status: (code) => ({ json: (data) => ({ statusCode: code, data }) })
+        };
+        
+        const result = await req.json();
+        
+        let replyText;
+        if (result.ok) {
+            replyText = `✅ Success! User @${result.user.username} (Card: ${result.user.card_number}) now has ${result.user.stars} stars.`;
+        } else {
+            replyText = `❌ Error: ${result.error || 'Unknown error'}`;
+        }
+        
+        await sendTelegram('sendMessage', process.env.BOT_TOKEN, { 
+            chat_id: post.chat.id, 
+            text: replyText, 
+            reply_to_message_id: post.message_id 
+        });
+    } catch (error) {
+        console.error('Channel post handler error:', error);
+        await sendTelegram('sendMessage', process.env.BOT_TOKEN, { 
+            chat_id: post.chat.id, 
+            text: `❌ Error: ${error.message}`, 
+            reply_to_message_id: post.message_id 
+        });
+    }
+}
+
+async function handleCallbackQuery(callbackQuery) {
+    // Implementation for order status updates would go here
+    // This is complex and requires order management UI
+}
+
+async function notifyAdminChannel(orderData) {
+    // Implementation for admin notifications would go here
+}
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Start server
+app.listen(port, () => {
+    console.log(`Willow Coffee backend running on port ${port}`);
+});
+
+module.exports = app;

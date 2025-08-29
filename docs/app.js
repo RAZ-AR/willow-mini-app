@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://willow-mini-app.raz-ar.workers.dev'; // TODO: Replace with your actual worker URL
+const API_BASE_URL = 'https://willow-coffee-backend.railway.app'; // TODO: Replace with your deployed backend URL
 
 const i18n = {
     en: {

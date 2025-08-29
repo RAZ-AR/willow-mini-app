@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: willow-coffee-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    # Add your environment variables in Render dashboard:
+    # DATABASE_URL, BOT_TOKEN, ADMIN_BEARER, ADMIN_CHANNEL_ID, etc.
+
+databases:
+  - name: willow-coffee-db
+    plan: free
+    databaseName: willow_coffee
+    user: postgres
