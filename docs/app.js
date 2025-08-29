@@ -132,9 +132,17 @@ const App = {
         }
     },
 
+    getInitData() {
+        // Use 'test' as initData if not in Telegram WebApp environment
+        if (!this.tg.initData || this.tg.initData.length === 0) {
+            return 'test';
+        }
+        return this.tg.initData;
+    },
+
     async authenticate() {
         try {
-            const initData = this.tg.initData;
+            const initData = this.getInitData();
             console.log('initData:', initData);
             console.log('API_BASE_URL:', API_BASE_URL);
             
@@ -413,7 +421,7 @@ const App = {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            initData: this.tg.initData, 
+                            initData: this.getInitData(), 
                             items, 
                             eta_minutes,
                             table_number,
