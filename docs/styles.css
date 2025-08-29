@@ -1,0 +1,264 @@
+:root {
+    --bg-color: #121212;
+    --primary-color: #1e1e1e;
+    --secondary-color: #2a2a2a;
+    --text-color: #e0e0e0;
+    --accent-color: #bb86fc;
+    --button-color: #03dac6;
+    --button-text-color: #000000;
+    --border-color: #333333;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0 0 100px 0; /* Padding at the bottom for the footer */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* --- Loader --- */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.loader {
+    border: 4px solid var(--secondary-color);
+    border-top: 4px solid var(--accent-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Layout --- */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: var(--primary-color);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    z-index: 100;
+}
+
+.main-content {
+    padding: 15px;
+}
+
+.sticky-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--primary-color);
+    padding: 10px 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+}
+
+/* --- Header --- */
+.brand {
+    font-weight: bold;
+    font-size: 1.4em;
+}
+.user-info {
+    font-size: 1.1em;
+}
+
+/* --- User Card & Lang Selector --- */
+.user-card-info {
+    background-color: var(--secondary-color);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.lang-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+.lang-btn.active {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    border-color: var(--accent-color);
+}
+
+/* --- Sections --- */
+h2 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* --- Rewards --- */
+.rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+.reward-card {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+.reward-title {
+    font-weight: bold;
+}
+.reward-cost {
+    color: var(--accent-color);
+    font-size: 1.2em;
+    margin: 5px 0;
+}
+.redeem-btn {
+    background-color: var(--button-color);
+    color: var(--button-text-color);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+}
+.redeem-btn:disabled {
+    background-color: var(--secondary-color);
+    color: #666;
+    cursor: not-allowed;
+}
+
+/* --- Menu --- */
+.category-tabs {
+    display: flex;
+    overflow-x: auto;
+    margin-bottom: 15px;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.category-tabs::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+
+.category-tab {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 15px;
+    margin-right: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.category-tab.active {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.menu-card {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 5px 15px;
+}
+
+.item-title { grid-area: 1 / 1 / 2 / 2; font-weight: bold; }
+.item-details { grid-area: 2 / 1 / 3 / 2; color: #aaa; font-size: 0.9em; }
+.item-price { grid-area: 3 / 1 / 4 / 2; font-size: 1.1em; }
+.item-actions { grid-area: 1 / 2 / 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+.item-info-btn {
+    background: none; border: none; color: var(--text-color); font-size: 1.2em; cursor: pointer; margin-bottom: 5px;
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    background-color: var(--primary-color);
+    border-radius: 5px;
+}
+.quantity-btn {
+    background: none; border: none; color: var(--text-color); font-size: 1.5em; width: 30px; height: 30px; cursor: pointer;
+}
+.item-quantity {
+    font-size: 1.1em; min-width: 20px; text-align: center;
+}
+
+/* --- Footer / Cart --- */
+.eta-selector {
+    font-size: 0.9em;
+}
+.eta-selector label {
+    margin-right: 8px;
+}
+.cart-summary {
+    font-weight: bold;
+}
+.order-button {
+    background-color: var(--button-color);
+    color: var(--button-text-color);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- Modal --- */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 200;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+}
+.modal-content {
+    background-color: var(--secondary-color);
+    margin: 40% auto;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    width: 80%;
+    max-width: 400px;
+    border-radius: 8px;
+    position: relative;
+}
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}

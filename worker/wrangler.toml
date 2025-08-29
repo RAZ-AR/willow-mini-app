@@ -1,0 +1,15 @@
+name = "willow-mini-app"
+main = "src/worker.js"
+compatibility_date = "2023-12-01"
+
+[triggers]
+crons = ["* * * * *"] # Every minute
+
+[[d1_databases]]
+binding = "DB" # i.e. env.DB
+database_name = "willow_coffee"
+database_id = "" # Fill this in after `wrangler d1 create`
+
+[vars]
+WEBAPP_URL = "https://raz-ar.github.io/willow-mini-app/"
+SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/1BRQuzea6bba0NxxPk9koLSzpHkfiAzrKmwDa8ow7128/export?format=csv&gid=0"

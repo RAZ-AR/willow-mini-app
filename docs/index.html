@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Willow Coffee</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+    <div id="loader" class="loader-container">
+        <div class="loader"></div>
+    </div>
+
+    <div id="app-container" style="display: none;">
+        <!-- Sticky Header -->
+        <header class="sticky-header">
+            <div class="brand">Willow</div>
+            <div class="user-info">
+                <span id="user-stars">... ⭐</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="user-card-info">
+                <span data-i18n="your_card">Your Card</span>: <b id="user-card-number">....</b>
+                <div class="lang-selector">
+                    <button class="lang-btn" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="ru">RU</button>
+                    <button class="lang-btn" data-lang="sr">SR</button>
+                </div>
+            </div>
+
+            <!-- Rewards Section -->
+            <section id="rewards-section" class="rewards-section">
+                <h2 data-i18n="rewards">Rewards</h2>
+                <div class="rewards-grid">
+                    <div class="reward-card" data-reward-key="coffee">
+                        <div class="reward-title">Coffee</div>
+                        <div class="reward-cost">4 ⭐</div>
+                        <button class="redeem-btn" data-i18n="redeem" disabled>Redeem</button>
+                    </div>
+                    <div class="reward-card" data-reward-key="aperol">
+                        <div class="reward-title">Aperol Spritz</div>
+                        <div class="reward-cost">8 ⭐</div>
+                        <button class="redeem-btn" data-i18n="redeem" disabled>Redeem</button>
+                    </div>
+                    <div class="reward-card" data-reward-key="breakfast">
+                        <div class="reward-title">Breakfast</div>
+                        <div class="reward-cost">12 ⭐</div>
+                        <button class="redeem-btn" data-i18n="redeem" disabled>Redeem</button>
+                    </div>
+                    <div class="reward-card" data-reward-key="prosecco">
+                        <div class="reward-title">Prosecco</div>
+                        <div class="reward-cost">16 ⭐</div>
+                        <button class="redeem-btn" data-i18n="redeem" disabled>Redeem</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Menu Section -->
+            <section id="menu-section">
+                <h2 data-i18n="menu">Menu</h2>
+                <div id="menu-categories" class="category-tabs">
+                    <!-- Category tabs will be injected here -->
+                </div>
+                <div id="menu-items" class="menu-grid">
+                    <!-- Menu item cards will be injected here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Sticky Footer / Cart -->
+        <footer id="cart-footer" class="sticky-footer" style="display: none;">
+            <div class="eta-selector">
+                <span data-i18n="eta">ETA</span>:
+                <label><input type="radio" name="eta" value="10"> 10'</label>
+                <label><input type="radio" name="eta" value="20" checked> 20'</label>
+                <label><input type="radio" name="eta" value="30"> 30'</label>
+            </div>
+            <div class="cart-summary">
+                <span data-i18n="total">Total</span>: <span id="cart-total">0</span> RSD
+            </div>
+            <button id="order-button" class="order-button">
+                <span data-i18n="order">Order</span> (<span id="cart-item-count">0</span>)
+            </button>
+        </footer>
+    </div>
+
+    <!-- Ingredients Modal -->
+    <div id="ingredients-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 data-i18n="ingredients">Ingredients</h3>
+            <p id="modal-ingredients-text"></p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
