@@ -1,12 +1,12 @@
 :root {
-    --bg-color: #121212;
-    --primary-color: #1e1e1e;
-    --secondary-color: #2a2a2a;
-    --text-color: #e0e0e0;
-    --accent-color: #bb86fc;
-    --button-color: #03dac6;
-    --button-text-color: #000000;
-    --border-color: #333333;
+    --bg-color: #ffffff;
+    --primary-color: #f8f9fa;
+    --secondary-color: #f1f3f4;
+    --text-color: #212529;
+    --accent-color: #20b2aa;
+    --button-color: #17a2b8;
+    --button-text-color: #ffffff;
+    --border-color: #dee2e6;
 }
 
 body {
@@ -100,7 +100,7 @@ body {
 }
 .lang-btn.active {
     background-color: var(--accent-color);
-    color: var(--bg-color);
+    color: #ffffff;
     border-color: var(--accent-color);
 }
 
@@ -143,7 +143,7 @@ h2 {
 }
 .redeem-btn:disabled {
     background-color: var(--secondary-color);
-    color: #666;
+    color: #6c757d;
     cursor: not-allowed;
 }
 
@@ -169,7 +169,7 @@ h2 {
 }
 .category-tab.active {
     background-color: var(--accent-color);
-    color: var(--bg-color);
+    color: #ffffff;
 }
 
 .menu-grid {
@@ -189,7 +189,7 @@ h2 {
 }
 
 .item-title { grid-area: 1 / 1 / 2 / 2; font-weight: bold; }
-.item-details { grid-area: 2 / 1 / 3 / 2; color: #aaa; font-size: 0.9em; }
+.item-details { grid-area: 2 / 1 / 3 / 2; color: #6c757d; font-size: 0.9em; }
 .item-price { grid-area: 3 / 1 / 4 / 2; font-size: 1.1em; }
 .item-actions { grid-area: 1 / 2 / 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
@@ -254,7 +254,7 @@ h2 {
     position: relative;
 }
 .close-button {
-    color: #aaa;
+    color: #6c757d;
     position: absolute;
     top: 10px;
     right: 15px;
