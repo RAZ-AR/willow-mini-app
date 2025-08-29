@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://willow-coffee-api.koyeb.app'; // TODO: Replace with your Koyeb deployment URL
+const API_BASE_URL = 'https://mild-lotta-willow-2025-1b544553.koyeb.app'; // Koyeb deployment URL
 
 const i18n = {
     en: {
