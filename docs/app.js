@@ -118,6 +118,24 @@ const App = {
             console.log('initData:', initData);
             console.log('API_BASE_URL:', API_BASE_URL);
             
+            // TEMPORARY: Skip authentication for testing
+            if (true) { // Always skip for now
+                // Create mock user for testing
+                this.state.user = {
+                    telegram_id: 12345,
+                    first_name: 'Test',
+                    last_name: 'User', 
+                    username: 'testuser',
+                    language_code: 'en',
+                    card_number: 1234,
+                    stars: 0
+                };
+                this.setLang('en');
+                this.updateUserUI();
+                this.fetchMenu();
+                return;
+            }
+            
             if (!initData) {
                 throw new Error('Telegram initData not found. Please open this app through Telegram.');
             }
