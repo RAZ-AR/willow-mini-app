@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://willow-coffee-backend.railway.app'; // TODO: Replace with your deployed backend URL
+const API_BASE_URL = 'https://willow-coffee-api.koyeb.app'; // TODO: Replace with your Koyeb deployment URL
 
 const i18n = {
     en: {

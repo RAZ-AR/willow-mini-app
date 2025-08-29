@@ -1,0 +1,38 @@
+# Koyeb deployment configuration
+name: willow-coffee-backend
+
+services:
+  - name: willow-coffee-api
+    type: web
+    git:
+      github: RAZ-AR/willow-mini-app
+      branch: master
+      workdir: backend
+    instance_type: free
+    build:
+      commands:
+        - npm install
+    run:
+      command: npm start
+    ports:
+      - port: 3000
+        protocol: http
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: PORT  
+        value: "3000"
+      # Add these via Koyeb dashboard:
+      # - name: DATABASE_URL
+      # - name: BOT_TOKEN
+      # - name: ADMIN_BEARER
+      # - name: ADMIN_CHANNEL_ID
+      # - name: WEBAPP_URL
+      # - name: SHEETS_CSV_URL
+      # - name: CORS_ORIGIN
+
+databases:
+  - name: willow-postgres
+    type: postgresql
+    version: "16"
+    instance_type: free
