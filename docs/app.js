@@ -62,10 +62,22 @@ const App = {
     },
 
     init() {
-        this.tg.ready();
-        this.tg.expand();
-        this.tg.setHeaderColor('#1e1e1e');
-        this.tg.setBackgroundColor('#121212');
+        // Check if we're in Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            this.tg.ready();
+            this.tg.expand();
+            this.tg.setHeaderColor('#1e1e1e');
+            this.tg.setBackgroundColor('#121212');
+        } else {
+            console.warn('Not in Telegram WebApp environment');
+            // Mock Telegram object for development
+            this.tg = {
+                initData: null,
+                showAlert: (message) => alert(message),
+                showConfirm: (message, callback) => callback(confirm(message)),
+                showPopup: (options) => alert(options.message)
+            };
+        }
 
         this.addEventListeners();
         this.authenticate();
@@ -103,7 +115,12 @@ const App = {
     async authenticate() {
         try {
             const initData = this.tg.initData;
-            if (!initData) throw new Error('Telegram initData not found.');
+            console.log('initData:', initData);
+            console.log('API_BASE_URL:', API_BASE_URL);
+            
+            if (!initData) {
+                throw new Error('Telegram initData not found. Please open this app through Telegram.');
+            }
 
             const user = await this.apiCall('/api/auth/telegram', {
                 method: 'POST',
@@ -116,7 +133,22 @@ const App = {
             this.updateUserUI();
             this.fetchMenu();
         } catch (error) {
-            document.getElementById('loader').innerText = 'Auth failed. Please reload.';
+            console.error('Authentication error:', error);
+            document.getElementById('loader').innerHTML = `
+                <div style="color: #ff4444; text-align: center; padding: 20px;">
+                    <h3>Authentication Failed</h3>
+                    <p>${error.message}</p>
+                    <p style="font-size: 12px; margin-top: 10px;">
+                        Please make sure:
+                        <br>• You opened this through Telegram
+                        <br>• Backend worker is deployed
+                        <br>• API_BASE_URL is correct
+                    </p>
+                    <button onclick="location.reload()" style="margin-top: 10px; padding: 10px 20px; background: #0088cc; color: white; border: none; border-radius: 5px;">
+                        Reload
+                    </button>
+                </div>
+            `;
         }
     },
 
