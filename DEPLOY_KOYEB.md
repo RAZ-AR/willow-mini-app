@@ -44,8 +44,8 @@
 3. Выбрать репозиторий `willow-mini-app`
 4. Настройки:
    - **Branch**: master
-   - **Build directory**: `backend`
-   - **Build command**: `npm install`
+   - **Build directory**: оставить пустым (корень репозитория)
+   - **Build command**: `npm run build`
    - **Run command**: `npm start`
    - **Instance type**: Free
    - **Port**: 3000
