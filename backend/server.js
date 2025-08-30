@@ -378,11 +378,14 @@ app.post('/api/order', async (req, res) => {
         }
 
         // Notify admin channel (if configured) - MOVED OUTSIDE DATABASE BLOCK
+        console.log('=== NOTIFICATION DEBUG ===');
         console.log('Checking Telegram notification config:', {
             hasAdminChannelId: !!process.env.ADMIN_CHANNEL_ID,
             hasBotToken: !!process.env.BOT_TOKEN,
             adminChannelId: process.env.ADMIN_CHANNEL_ID,
-            botTokenLength: process.env.BOT_TOKEN?.length
+            botTokenLength: process.env.BOT_TOKEN?.length,
+            orderId: order_id,
+            user: user
         });
         
         if (process.env.ADMIN_CHANNEL_ID && process.env.BOT_TOKEN) {
@@ -399,9 +402,11 @@ app.post('/api/order', async (req, res) => {
                     table_number,
                     payment_method,
                 };
+                console.log('=== SENDING NOTIFICATION ===');
                 console.log('Sending Telegram notification for order:', short_id);
+                console.log('Order data:', JSON.stringify(orderData, null, 2));
                 await notifyAdminChannel(orderData);
-                console.log('Admin notification sent successfully');
+                console.log('=== NOTIFICATION SUCCESS ===');
                 
                 // Send personal notification to customer (skip for test users)
                 if (initData !== 'test') {
@@ -418,7 +423,12 @@ app.post('/api/order', async (req, res) => {
                 console.error('Failed to notify admin:', notifyError);
             }
         } else {
-            console.log('Skipping Telegram notification - missing BOT_TOKEN or ADMIN_CHANNEL_ID');
+            console.log('=== SKIPPING NOTIFICATION ===');
+            console.log('Missing config:', {
+                hasAdminChannelId: !!process.env.ADMIN_CHANNEL_ID,
+                hasBotToken: !!process.env.BOT_TOKEN,
+                adminChannelId: process.env.ADMIN_CHANNEL_ID
+            });
         }
 
         res.json({
