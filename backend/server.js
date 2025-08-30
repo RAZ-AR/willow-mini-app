@@ -217,14 +217,18 @@ app.post('/api/auth/telegram', async (req, res) => {
         // Skip database operations if in test mode or no DATABASE_URL
         if (initData === 'test' || !pool) {
             console.log('Test mode: Using mock user data');
+            const card_number = await generateUniqueCardNumber();
             dbUser = {
                 telegram_id: user.id,
                 first_name: user.first_name,
                 last_name: user.last_name,
                 username: user.username,
                 stars: 10,
-                card_number: 12345678
+                card_number: card_number
             };
+            
+            // Add card to Google Sheets in test mode
+            await addCardToSheets(dbUser);
         } else {
             dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
             dbUser = dbUser.rows[0];
@@ -236,6 +240,9 @@ app.post('/api/auth/telegram', async (req, res) => {
                     [user.id, user.first_name, user.last_name || null, user.username || null, user.language_code || 'en', card_number]
                 );
                 dbUser = result.rows[0];
+                
+                // Add card to Google Sheets
+                await addCardToSheets(dbUser);
             }
         }
 
@@ -791,6 +798,38 @@ ${t.footer}`;
         text: message,
         parse_mode: 'Markdown',
     });
+}
+
+// Function to add card to Google Sheets Cards tab
+async function addCardToSheets(cardData) {
+    try {
+        if (!process.env.SHEETS_CARDS_WEBHOOK_URL) {
+            console.log('SHEETS_CARDS_WEBHOOK_URL not configured - skipping Google Sheets card registration');
+            return;
+        }
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(process.env.SHEETS_CARDS_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: cardData.telegram_id,
+                card: cardData.card_number,
+                name: `${cardData.first_name} ${cardData.last_name || ''}`.trim(),
+                telegram: cardData.username || cardData.telegram_id
+            })
+        });
+
+        if (response.ok) {
+            console.log('Card successfully added to Google Sheets:', cardData.card_number);
+        } else {
+            console.error('Failed to add card to Google Sheets:', response.statusText);
+        }
+    } catch (error) {
+        console.error('Error adding card to Google Sheets:', error);
+    }
 }
 
 // Health check endpoint
