@@ -240,9 +240,15 @@ app.post('/api/auth/telegram', async (req, res) => {
 // POST /api/order
 app.post('/api/order', async (req, res) => {
     try {
+        console.log('=== Order Request ===');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+        
         const { initData, items, eta_minutes, table_number, payment_method } = req.body;
 
+        console.log('Extracted values:', { initData, items, eta_minutes, table_number, payment_method });
+
         if (!initData || !items || !eta_minutes || !Array.isArray(items) || items.length === 0) {
+            console.log('Missing required fields validation failed');
             return res.status(400).json({ error: 'Missing required fields' });
         }
         if (![0, 10, 20].includes(eta_minutes)) {
@@ -408,7 +414,9 @@ app.post('/api/order', async (req, res) => {
             new_stars: dbUser.rows[0].stars,
         });
     } catch (error) {
-        console.error('Order creation error:', error);
+        console.error('=== Order creation error ===');
+        console.error('Error details:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ error: 'Failed to create order' });
     }
 });
