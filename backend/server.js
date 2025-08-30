@@ -555,10 +555,14 @@ app.post('/api/admin/accrue', async (req, res) => {
 app.post('/tg/webhook', async (req, res) => {
     try {
         const update = req.body;
+        console.log('=== Telegram Webhook Update ===');
+        console.log(JSON.stringify(update, null, 2));
 
         if (update.message) {
+            console.log('Message from chat:', update.message.chat.id, update.message.chat.type);
             await handleMessage(update.message);
         } else if (update.channel_post) {
+            console.log('Channel post from:', update.channel_post.chat.id, update.channel_post.chat.type);
             await handleChannelPost(update.channel_post);
         } else if (update.callback_query) {
             await handleCallbackQuery(update.callback_query);
