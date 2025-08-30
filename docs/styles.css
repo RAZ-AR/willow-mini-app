@@ -338,8 +338,41 @@ h2 {
     border-bottom: 1px solid var(--border-color);
 }
 
-.order-row:last-child {
+.order-items {
+    background-color: var(--bg-color);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.order-items h4 {
+    color: var(--text-color);
+    font-size: 1em;
+    margin: 0 0 10px 0;
+    border: none;
+    padding: 0;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.order-total {
+    border-top: 2px solid var(--accent-color);
+    padding-top: 15px;
+}
+
+.order-total .order-row {
     border-bottom: none;
+    padding: 5px 0;
+}
+
+.order-total .order-row:last-child {
     font-weight: bold;
     color: var(--accent-color);
 }

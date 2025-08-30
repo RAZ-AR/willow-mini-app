@@ -409,7 +409,7 @@ const App = {
         document.getElementById('ingredients-modal').style.display = show ? 'block' : 'none';
     },
 
-    showOrderSuccessModal(result, eta_minutes, total_amount, stars_earned) {
+    showOrderSuccessModal(result, eta_minutes, total_amount, stars_earned, items) {
         const modal = document.getElementById('order-success-modal');
         
         // Update modal content with order details
@@ -418,6 +418,24 @@ const App = {
         document.getElementById('eta-display').textContent = eta_minutes || '0';
         document.getElementById('total-display').textContent = total_amount;
         document.getElementById('stars-display').textContent = stars_earned;
+        
+        // Build items list
+        const itemsList = document.getElementById('order-items-list');
+        itemsList.innerHTML = '';
+        
+        const menuMap = new Map(this.state.menu.items.map(i => [i.id, i]));
+        for (const item of items) {
+            const menuItem = menuMap.get(item.id);
+            if (menuItem) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'order-item';
+                itemDiv.innerHTML = `
+                    <span>• ${menuItem.name} x${item.qty}</span>
+                    <span>${menuItem.price * item.qty} RSD</span>
+                `;
+                itemsList.appendChild(itemDiv);
+            }
+        }
         
         // Update all translations
         this.updateTranslations();
@@ -485,7 +503,7 @@ const App = {
                         }),
                     });
                     // Show beautiful success modal instead of simple popup
-                    this.showOrderSuccessModal(result, eta_minutes, total_amount, starsNeeded);
+                    this.showOrderSuccessModal(result, eta_minutes, total_amount, starsNeeded, items);
                     this.state.cart = {};
                     if (result.new_stars !== undefined) {
                         this.state.user.stars = result.new_stars;
