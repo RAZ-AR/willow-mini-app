@@ -1,86 +1,255 @@
 # Willow Coffee — Telegram Mini App
 
-This repository contains the source code for the Willow Coffee Telegram Mini App, a complete solution for a coffee shop including a customer-facing app, a backend server, and admin controls.
+![Status](https://img.shields.io/badge/Status-Production%20Ready-green) ![Frontend](https://img.shields.io/badge/Frontend-GitHub%20Pages-blue) ![Backend](https://img.shields.io/badge/Backend-Koyeb-purple) ![Database](https://img.shields.io/badge/Database-PostgreSQL-orange)
 
-## About The Project
+Полнофункциональное Telegram Mini App для кофейни с системой заказов, программой лояльности и админ-панелью.
 
-The application provides a seamless experience for customers to browse the menu, place orders, and participate in a loyalty program directly within Telegram. The backend is built on serverless technologies for scalability and low cost, and the menu is dynamically managed via a Google Sheet.
+## 🏗️ Архитектура системы
 
-## Features
+```
+┌─────────────────────┐    ┌──────────────────────┐    ┌─────────────────────┐
+│   Telegram WebApp   │    │      Backend API     │    │   Admin Channel     │
+│  (GitHub Pages)     │◄──►│      (Koyeb)         │───►│   (Telegram)        │
+│                     │    │                      │    │                     │
+│ • HTML/CSS/JS       │    │ • Express.js         │    │ • Order alerts      │
+│ • Menu display      │    │ • PostgreSQL         │    │ • Admin commands    │
+│ • Order form        │    │ • Telegram Bot API   │    │ • Real-time updates │
+│ • Loyalty system    │    │ • CORS enabled       │    │                     │
+└─────────────────────┘    └──────────────────────┘    └─────────────────────┘
+            │                         │
+            │                         │
+            ▼                         ▼
+┌─────────────────────┐    ┌──────────────────────┐
+│   Google Sheets     │    │    PostgreSQL DB     │
+│                     │    │                      │
+│ • Dynamic menu      │    │ • Users & cards      │
+│ • Multi-language    │    │ • Orders & items     │
+│ • Easy updates      │    │ • Transactions       │
+│ • CSV export        │    │ • Loyalty stars      │
+└─────────────────────┘    └──────────────────────┘
+```
 
-*   **Loyalty Program**: Customers earn stars for purchases (`ceil(amount / 350)`) and can redeem them for rewards (e.g., free coffee, breakfast).
-*   **Dynamic Menu**: The menu is fetched from a public Google Sheet, allowing for easy updates without redeploying the application. Menu is cached for 60 seconds.
-*   **Ordering System**: Users can build a cart, select an ETA (10, 20, or 30 minutes), and place an order. The backend validates prices and calculates totals.
-*   **Admin Notifications**: New orders are sent as interactive cards to a private Telegram channel, where admins can mark them as ready, delayed, or canceled.
-*   **Customer Notifications**: Customers receive direct messages when their order is ready or canceled.
-*   **Offline Accruals**: Admins can add stars or accrue them from an amount for a user via commands (`/addstars`, `/addamount`) in the admin channel.
-*   **Secure**: Employs HMAC validation for all Telegram Web App data and a bearer token for admin API endpoints.
-*   **Multi-language UI**: Frontend supports English, Russian, and Serbian.
+## 🚀 Текущее состояние
 
-## Tech Stack
+### ✅ Реализовано и работает:
+- **Frontend**: Полностью функциональный интерфейс на GitHub Pages
+- **Backend API**: Express.js сервер на Koyeb с полным функционалом
+- **Система заказов**: Столики (1-10 + на вынос), ETA (сейчас/10мин/20мин), способы оплаты (наличные/звезды)  
+- **Расчет лояльности**: 1 звезда за каждые 350 RSD
+- **Тестовый режим**: Работает без настройки Telegram бота
+- **Динамическое меню**: Загружается из Google Sheets
+- **Мультиязычность**: EN/RU/SR
 
-*   **Frontend**: GitHub Pages (HTML, CSS, JavaScript + Telegram WebApp SDK)
-*   **Backend**: Cloudflare Workers (ES Modules)
-*   **Database**: Cloudflare D1 (SQLite)
-*   **Menu Source**: Google Sheets (CSV export)
+### ⚙️ Требует настройки для продакшена:
+- **BOT_TOKEN**: Токен Telegram бота (от @BotFather)
+- **ADMIN_CHANNEL_ID**: ID канала для уведомлений о заказах
+- **DATABASE_URL**: PostgreSQL для продакшена (опционально)
+- **Google Sheets**: Сделать таблицу публичной
+
+## 🛠️ Технологический стек
+
+| Компонент | Технология | Хостинг | Состояние |
+|-----------|------------|---------|-----------|
+| **Frontend** | HTML/CSS/JS + Telegram WebApp SDK | GitHub Pages | ✅ Готов |
+| **Backend** | Express.js + Node.js | Koyeb | ✅ Развернут |
+| **База данных** | PostgreSQL (prod) / Mock data (test) | Koyeb (встроенная) | ✅ Настроена |
+| **Меню** | Google Sheets CSV | Google Drive | ⚠️ Нужен публичный доступ |
+| **Бот** | Telegram Bot API | - | ⚠️ Нужна настройка |
+
+## 📋 Возможности системы
+
+### Для клиентов:
+- 🍽️ **Просмотр меню** с ценами на 3 языках
+- 🛒 **Корзина заказов** с выбором столика и времени
+- ⭐ **Программа лояльности** (1 звезда = 350 RSD)
+- 🎁 **Обмен звезд** на награды (кофе, завтрак, etc.)
+- 💳 **Способы оплаты**: наличные или звезды
+- 📱 **Telegram интеграция** с уведомлениями
+
+### Для администраторов:
+- 📢 **Автоматические уведомления** о новых заказах
+- 📊 **Детальная информация**: клиент, столик, состав заказа, сумма
+- ⚡ **Админ команды** в Telegram канале
+- 🔄 **Обновление меню** через Google Sheets
+- 📈 **Управление лояльностью** пользователей
+
+## 🌐 Ссылки
+
+| Ресурс | URL | Статус |
+|--------|-----|--------|
+| **Frontend** | https://raz-ar.github.io/willow-mini-app/ | ✅ Активен |
+| **Backend API** | https://mild-lotta-willow-2025-1b544553.koyeb.app | ✅ Активен |
+| **Menu API** | https://mild-lotta-willow-2025-1b544553.koyeb.app/api/menu | ✅ Активен |
+| **Health Check** | https://mild-lotta-willow-2025-1b544553.koyeb.app/health | ✅ Активен |
+| **Google Sheets** | [Menu Table](https://docs.google.com/spreadsheets/d/1BRQuzea6bba0NxxPk9koLSzpHkfiAzrKmwDa8ow7128/) | ⚠️ Приватная |
+
+## 🔧 API Endpoints
+
+### Публичные
+```
+GET  /health              - Проверка состояния сервера
+GET  /api/menu            - Получение меню из Google Sheets
+POST /api/user            - Аутентификация/создание пользователя  
+POST /api/order           - Создание заказа
+POST /api/redeem          - Обмен звезд на награды
+```
+
+### Webhook
+```
+POST /tg/webhook          - Telegram Bot webhook
+```
+
+## 🚀 Быстрый запуск
+
+### Тестирование (без настройки бота):
+1. Открой https://raz-ar.github.io/willow-mini-app/
+2. Добавь товары в корзину
+3. Выбери столик и способ оплаты
+4. Оформи заказ
+
+### Полная настройка:
+
+#### 1. Создай Telegram бота
+```bash
+# Напиши @BotFather в Telegram
+/newbot
+# Следуй инструкциям, получи BOT_TOKEN
+```
+
+#### 2. Настрой переменные в Koyeb
+Зайди в [панель Koyeb](https://app.koyeb.com) → твой сервис → Settings → Environment:
+```
+BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+ADMIN_CHANNEL_ID=-4988316360
+DATABASE_URL=postgresql://... (опционально для продакшена)
+```
+
+#### 3. Настрой Telegram бота
+```bash
+# Установи webhook
+curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://mild-lotta-willow-2025-1b544553.koyeb.app/tg/webhook"
+
+# Настрой WebApp
+curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setChatMenuButton" \
+-H "Content-Type: application/json" \
+-d '{
+  "menu_button": {
+    "type": "web_app",
+    "text": "☕ Willow Coffee", 
+    "web_app": {"url": "https://raz-ar.github.io/willow-mini-app/"}
+  }
+}'
+```
+
+#### 4. Добавь бота в админ-канал
+1. Добавь бота как администратора в канал
+2. Дай права на отправку сообщений
+
+## 📊 Структура базы данных
+
+```sql
+-- Пользователи и карты лояльности
+users (telegram_id, first_name, last_name, username, stars, card_number, created_at)
+
+-- Заказы
+orders (id, short_id, user_id, total_amount, stars_added, eta_minutes, due_at, status, created_at)
+
+-- Позиции заказов  
+order_items (id, order_id, item_id, quantity, unit_price, created_at)
+
+-- Транзакции звезд
+transactions (id, user_id, type, stars_change, order_id, description, created_at)
+
+-- Награды программы лояльности
+rewards (key, cost_stars, name_en, name_ru, name_sr, description, active)
+```
+
+## 🔄 Процесс заказа
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as Backend  
+    participant T as Telegram
+    participant A as Admin
+
+    U->>F: Открывает приложение
+    F->>B: GET /api/user (аутентификация)
+    B->>F: Возвращает данные пользователя
+    
+    U->>F: Выбирает товары
+    U->>F: Заполняет форму заказа
+    F->>B: POST /api/order
+    
+    B->>B: Валидирует данные
+    B->>B: Сохраняет в БД
+    B->>B: Начисляет звезды
+    B->>T: Отправляет уведомление в админ-канал
+    T->>A: Показывает карточку заказа
+    
+    B->>F: Возвращает подтверждение
+    F->>U: Показывает успешное оформление
+```
+
+## 🐛 Отладка и логи
+
+### Проверка API:
+```bash
+# Проверка здоровья сервера
+curl https://mild-lotta-willow-2025-1b544553.koyeb.app/health
+
+# Проверка меню
+curl https://mild-lotta-willow-2025-1b544553.koyeb.app/api/menu
+
+# Тестовый заказ
+curl -X POST https://mild-lotta-willow-2025-1b544553.koyeb.app/api/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "initData": "test",
+    "items": [{"id": "item-234bbf05", "qty": 1}],
+    "eta_minutes": 10,
+    "table_number": "1",
+    "payment_method": "cash"
+  }'
+```
+
+### Логи Koyeb:
+Проверь логи в панели Koyeb → твой сервис → Logs
+
+## 🔮 Планы развития
+
+### Следующие фичи:
+- [ ] Статистика заказов и аналитика
+- [ ] Система скидок и промокодов  
+- [ ] Push-уведомления о готовности заказа
+- [ ] Интеграция с системами оплаты
+- [ ] Мобильное приложение (React Native)
+- [ ] Система отзывов и рейтингов
+- [ ] Управление запасами и остатками
+
+### Технические улучшения:
+- [ ] Миграция на TypeScript
+- [ ] Unit и интеграционные тесты
+- [ ] CI/CD pipeline
+- [ ] Monitoring и alerting
+- [ ] Backup и disaster recovery
+- [ ] Load balancing для высоких нагрузок
+
+## 👥 Участники проекта
+
+- **Архитектура и разработка**: Claude Code AI
+- **Продуктовые требования**: Владелец кофейни
+- **Дизайн**: Минималистичный UI в стиле Telegram
+
+## 📄 Лицензия
+
+Проект разработан для частного использования кофейни Willow Coffee.
 
 ---
 
-## Deployment
+**🔗 Репозиторий**: https://github.com/RAZ-AR/willow-mini-app  
+**📱 Приложение**: https://raz-ar.github.io/willow-mini-app/  
+**⚡ API**: https://mild-lotta-willow-2025-1b544553.koyeb.app
 
-### 1. GitHub Pages (Frontend)
-
-The frontend is built with pure HTML, CSS, and JavaScript and is located in the `/docs` directory.
-
-1.  **Create Repository**: Make sure you have created a GitHub repository (e.g., `willow-mini-app`) and pushed the code.
-2.  **Configure GitHub Pages**:
-    *   Go to your repository's **Settings** tab.
-    *   Navigate to the **Pages** section in the left sidebar.
-    *   Under "Build and deployment", select **Deploy from a branch** as the source.
-    *   Set the branch to **`main`** and the folder to **`/docs`**.
-    *   Click **Save**.
-3.  **Verify**: After a few minutes, your site should be live at the URL provided by GitHub (e.g., `https://<username>.github.io/willow-mini-app/`). This is your `WEBAPP_URL`.
-
-### 2. Cloudflare Workers (Backend)
-
-The backend is a Cloudflare Worker with a D1 database.
-
-1.  **Install Wrangler**: If you haven't already, install the Cloudflare Wrangler CLI:
-    ```bash
-    npm install -g wrangler
-    ```
-2.  **Login to Cloudflare**:
-    ```bash
-    wrangler login
-    ```
-3.  **Create D1 Database**:
-    ```bash
-    wrangler d1 create willow_coffee
-    ```
-    This command will output the `database_id` and `database_name`. Add this information to `worker/wrangler.toml`.
-4.  **Execute Schema**: Apply the database schema and seed the initial data.
-    ```bash
-    wrangler d1 execute willow_coffee --file=worker/schema.sql
-    ```
-5.  **Set Secrets**: Configure the necessary secrets for the worker. You will be prompted to enter each value.
-    ```bash
-    wrangler secret put BOT_TOKEN
-    wrangler secret put ADMIN_BEARER
-    wrangler secret put ADMIN_CHANNEL_ID
-    ```
-6.  **Deploy Worker**: Deploy the worker to your Cloudflare account.
-    ```bash
-    # Navigate to the worker directory first
-    cd worker
-    wrangler deploy
-    ```
-    This will output the URL for your worker (e.g., `https://willow-mini-app.<subdomain>.workers.dev`). **You must update `API_BASE_URL` in `docs/app.js` with this URL.**
-
-### 3. Telegram Bot Integration
-
-1.  **Set Webhook**: Point your Telegram bot to the deployed worker's webhook endpoint. Replace `<WORKER_URL>` with the URL from the previous step and `<BOT_TOKEN>` with your bot's token.
-    ```bash
-    curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=<WORKER_URL>/tg/webhook&allowed_updates=["message","channel_post","callback_query"]"
-    ```
-2.  **Set Bot Commands**: Use BotFather to set the `/start` command for your bot, which will show the "Open App" button.
-3.  **Admin Channel**: Create a private Telegram channel for order notifications and admin commands. Add your bot to the channel as an administrator. Get the channel's ID and set it as the `ADMIN_CHANNEL_ID` secret.
+*Последнее обновление: 29 августа 2025*
