@@ -125,6 +125,39 @@
         </div>
     </div>
 
+    <!-- Order Success Modal -->
+    <div id="order-success-modal" class="modal order-success-modal">
+        <div class="modal-content success-modal-content">
+            <div class="success-icon">✅</div>
+            <h2 id="success-title" data-i18n="order_success_title">Thank You!</h2>
+            <p id="success-message" data-i18n="order_success_message">Your order has been placed successfully. We'll start preparing it shortly!</p>
+            
+            <div class="order-summary">
+                <h3 data-i18n="order_details">Order Details</h3>
+                <div class="order-info">
+                    <div class="order-row">
+                        <span data-i18n="order_number">Order #</span>
+                        <span id="order-id-display"></span>
+                    </div>
+                    <div class="order-row">
+                        <span data-i18n="estimated_time">Estimated time</span>
+                        <span><span id="eta-display"></span> <span data-i18n="minutes">minutes</span></span>
+                    </div>
+                    <div class="order-row">
+                        <span data-i18n="total">Total</span>
+                        <span><span id="total-display"></span> RSD</span>
+                    </div>
+                    <div class="order-row">
+                        <span data-i18n="stars_earned">Stars earned</span>
+                        <span><span id="stars-display"></span> ⭐</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="close-success-modal" class="success-close-btn">OK</button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

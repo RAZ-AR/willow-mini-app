@@ -262,3 +262,107 @@ h2 {
     font-weight: bold;
     cursor: pointer;
 }
+
+/* --- Order Success Modal --- */
+.order-success-modal {
+    background-color: rgba(0,0,0,0.8);
+}
+
+.success-modal-content {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+    padding: 40px 30px;
+    margin: 20% auto;
+    max-width: 400px;
+    width: 90%;
+}
+
+.success-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: bounceIn 0.8s ease-out;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.success-modal-content h2 {
+    color: var(--accent-color);
+    font-size: 2em;
+    margin-bottom: 15px;
+    border: none;
+    padding: 0;
+}
+
+.success-modal-content p {
+    color: var(--text-color);
+    font-size: 1.1em;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+
+.order-summary {
+    background-color: var(--secondary-color);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.order-summary h3 {
+    color: var(--accent-color);
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    text-align: center;
+    border: none;
+    padding: 0;
+}
+
+.order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.order-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.order-row:last-child {
+    border-bottom: none;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.success-close-btn {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--button-color) 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(32, 178, 170, 0.3);
+}
+
+.success-close-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(32, 178, 170, 0.4);
+}
+
+.success-close-btn:active {
+    transform: translateY(0);
+}

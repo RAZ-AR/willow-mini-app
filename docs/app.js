@@ -16,6 +16,13 @@ const i18n = {
         confirm_redeem: 'Are you sure you want to redeem this reward?',
         confirm_order: 'Are you sure you want to place this order?',
         order_placed: 'Order placed successfully!',
+        order_success_title: 'Thank You!',
+        order_success_message: 'Your order has been placed successfully. We\'ll start preparing it shortly!',
+        order_details: 'Order Details',
+        order_number: 'Order #',
+        estimated_time: 'Estimated time',
+        minutes: 'minutes',
+        stars_earned: 'Stars earned',
         redeem_success: 'Reward redeemed!',
         error_title: 'Error',
         error_default: 'An unknown error occurred.',
@@ -36,6 +43,13 @@ const i18n = {
         confirm_redeem: 'Вы уверены, что хотите использовать эту награду?',
         confirm_order: 'Вы уверены, что хотите сделать заказ?',
         order_placed: 'Заказ успешно размещен!',
+        order_success_title: 'Спасибо!',
+        order_success_message: 'Ваш заказ успешно принят. Мы скоро начнём его готовить!',
+        order_details: 'Детали заказа',
+        order_number: 'Заказ №',
+        estimated_time: 'Время приготовления',
+        minutes: 'минут',
+        stars_earned: 'Звёзд получено',
         redeem_success: 'Награда получена!',
         error_title: 'Ошибка',
         error_default: 'Произошла неизвестная ошибка.',
@@ -56,6 +70,13 @@ const i18n = {
         confirm_redeem: 'Da li ste sigurni da želite da iskoristite ovu nagradu?',
         confirm_order: 'Da li ste sigurni da želite da naručite?',
         order_placed: 'Narudžba je uspešno poslata!',
+        order_success_title: 'Hvala Vam!',
+        order_success_message: 'Vaša narudžba je uspešno primljena. Uskoro počinjemo sa pripremom!',
+        order_details: 'Detalji narudžbe',
+        order_number: 'Narudžba #',
+        estimated_time: 'Vreme pripreme',
+        minutes: 'minuta',
+        stars_earned: 'Zvezda dobijeno',
         redeem_success: 'Nagrada je iskorišćena!',
         error_title: 'Greška',
         error_default: 'Došlo je do nepoznate greške.',
@@ -388,6 +409,40 @@ const App = {
         document.getElementById('ingredients-modal').style.display = show ? 'block' : 'none';
     },
 
+    showOrderSuccessModal(result, eta_minutes, total_amount, stars_earned) {
+        const modal = document.getElementById('order-success-modal');
+        
+        // Update modal content with order details
+        const shortId = result.order_id.split('-')[0].toUpperCase();
+        document.getElementById('order-id-display').textContent = shortId;
+        document.getElementById('eta-display').textContent = eta_minutes || '0';
+        document.getElementById('total-display').textContent = total_amount;
+        document.getElementById('stars-display').textContent = stars_earned;
+        
+        // Update all translations
+        this.updateTranslations();
+        
+        // Show modal
+        modal.style.display = 'block';
+        
+        // Add event listeners for closing
+        const closeBtn = document.getElementById('close-success-modal');
+        const closeHandler = () => {
+            modal.style.display = 'none';
+            closeBtn.removeEventListener('click', closeHandler);
+            modal.removeEventListener('click', outsideClickHandler);
+        };
+        
+        const outsideClickHandler = (event) => {
+            if (event.target === modal) {
+                closeHandler();
+            }
+        };
+        
+        closeBtn.addEventListener('click', closeHandler);
+        modal.addEventListener('click', outsideClickHandler);
+    },
+
     async handleOrder() {
         const items = Object.entries(this.state.cart).map(([id, qty]) => ({ id, qty })).filter(item => item.qty > 0);
         if (items.length === 0) return;
@@ -429,7 +484,8 @@ const App = {
                             stars_needed: starsNeeded
                         }),
                     });
-                    this.tg.showPopup({ message: this.t('order_placed') });
+                    // Show beautiful success modal instead of simple popup
+                    this.showOrderSuccessModal(result, eta_minutes, total_amount, starsNeeded);
                     this.state.cart = {};
                     if (result.new_stars !== undefined) {
                         this.state.user.stars = result.new_stars;
