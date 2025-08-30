@@ -708,11 +708,24 @@ ${itemsList}
 
 #order #${table_number === 'takeaway' ? 'takeaway' : 'table' + table_number}`;
 
-    await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
+    console.log('Sending message to Telegram API...');
+    console.log('Bot token:', process.env.BOT_TOKEN?.substring(0, 10) + '...');
+    console.log('Chat ID:', process.env.ADMIN_CHANNEL_ID);
+    console.log('Message length:', message.length);
+    
+    const response = await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
         chat_id: process.env.ADMIN_CHANNEL_ID,
         text: message,
         parse_mode: 'Markdown',
     });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Telegram API error:', response.status, errorText);
+        throw new Error(`Telegram API error: ${response.status} ${errorText}`);
+    }
+    
+    console.log('Message sent successfully to Telegram');
 }
 
 // Customer notification translations
