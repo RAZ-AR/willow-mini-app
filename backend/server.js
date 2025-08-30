@@ -116,9 +116,12 @@ function calculateOrderTotal(orderItems, menuItems) {
         const menuItem = menuMap.get(item.id);
         if (menuItem && item.qty > 0) {
             total_amount += menuItem.price * item.qty;
+            // Get item name (use English title by default)
+            const itemName = menuItem.title?.en || menuItem.name || 'Unknown item';
+            
             validatedItems.push({
                 id: item.id,
-                name: menuItem.name,
+                name: itemName,
                 quantity: item.qty,
                 unit_price: menuItem.price,
                 price: menuItem.price,
