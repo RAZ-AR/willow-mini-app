@@ -837,6 +837,19 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug config endpoint
+app.get('/debug/config', (req, res) => {
+    res.json({
+        hasAdminChannelId: !!process.env.ADMIN_CHANNEL_ID,
+        adminChannelId: process.env.ADMIN_CHANNEL_ID,
+        hasBotToken: !!process.env.BOT_TOKEN,
+        botTokenLength: process.env.BOT_TOKEN?.length,
+        hasSheetsCardsUrl: !!process.env.SHEETS_CARDS_WEBHOOK_URL,
+        hasDatabase: !!process.env.DATABASE_URL,
+        testMode: !process.env.DATABASE_URL || process.env.DATABASE_URL === 'base'
+    });
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Willow Coffee backend running on port ${port}`);
