@@ -863,6 +863,42 @@ app.get('/debug/config', (req, res) => {
     });
 });
 
+// Test notification endpoint
+app.post('/debug/test-notification', async (req, res) => {
+    try {
+        console.log('=== MANUAL TEST NOTIFICATION ===');
+        
+        if (!process.env.ADMIN_CHANNEL_ID || !process.env.BOT_TOKEN) {
+            return res.json({ 
+                error: 'Missing config',
+                hasAdminChannelId: !!process.env.ADMIN_CHANNEL_ID,
+                hasBotToken: !!process.env.BOT_TOKEN
+            });
+        }
+
+        const testOrderData = {
+            order_id: 'test-' + Date.now(),
+            short_id: 'TEST123',
+            user: { id: 999999, first_name: 'Debug', last_name: 'User', username: 'debuguser' },
+            eta_minutes: 10,
+            due_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            total_amount: 100,
+            stars_added: 1,
+            items: [{ id: 'test-item', name: 'Test Item', quantity: 1, unit_price: 100 }],
+            table_number: '0',
+            payment_method: 'cash'
+        };
+
+        console.log('Sending manual test notification...');
+        await notifyAdminChannel(testOrderData);
+        
+        res.json({ success: true, message: 'Test notification sent' });
+    } catch (error) {
+        console.error('Manual test notification failed:', error);
+        res.json({ error: error.message });
+    }
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Willow Coffee backend running on port ${port}`);
