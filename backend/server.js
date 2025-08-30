@@ -118,8 +118,10 @@ function calculateOrderTotal(orderItems, menuItems) {
             total_amount += menuItem.price * item.qty;
             validatedItems.push({
                 id: item.id,
+                name: menuItem.name,
                 quantity: item.qty,
                 unit_price: menuItem.price,
+                price: menuItem.price,
             });
         }
     }
