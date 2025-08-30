@@ -8,10 +8,15 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Database connection
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+let pool = null;
+if (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'base' && process.env.DATABASE_URL.startsWith('postgres')) {
+    pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+} else {
+    console.log('Running in test mode - no valid DATABASE_URL provided');
+}
 
 // Middleware
 app.use(cors({
@@ -98,6 +103,10 @@ async function isValidTelegramInitData(initData, botToken) {
 }
 
 async function generateUniqueCardNumber() {
+    if (!pool) {
+        return Math.floor(1000 + Math.random() * 9000);
+    }
+    
     while (true) {
         const card_number = Math.floor(1000 + Math.random() * 9000);
         const result = await pool.query('SELECT 1 FROM users WHERE card_number = $1', [card_number]);
@@ -206,7 +215,7 @@ app.post('/api/auth/telegram', async (req, res) => {
         let dbUser;
         
         // Skip database operations if in test mode or no DATABASE_URL
-        if (initData === 'test' || !process.env.DATABASE_URL) {
+        if (initData === 'test' || !pool) {
             console.log('Test mode: Using mock user data');
             dbUser = {
                 telegram_id: user.id,
@@ -317,7 +326,7 @@ app.post('/api/order', async (req, res) => {
         let dbUser;
         
         // Skip database operations if in test mode or no DATABASE_URL
-        if (initData === 'test' || !process.env.DATABASE_URL) {
+        if (initData === 'test' || !pool) {
             console.log('Test mode: Skipping database operations');
             dbUser = { rows: [{ stars: 10 }] }; // Mock user with 10 stars
         } else {
@@ -424,6 +433,10 @@ app.post('/api/order', async (req, res) => {
 // POST /api/redeem
 app.post('/api/redeem', async (req, res) => {
     try {
+        if (!pool) {
+            return res.status(503).json({ error: 'Service in test mode - rewards not available' });
+        }
+        
         const { telegram_id, rewardKey } = req.body;
         if (!telegram_id || !rewardKey) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -476,6 +489,10 @@ app.post('/api/redeem', async (req, res) => {
 // POST /api/admin/accrue
 app.post('/api/admin/accrue', async (req, res) => {
     try {
+        if (!pool) {
+            return res.status(503).json({ error: 'Service in test mode - admin features not available' });
+        }
+        
         const authHeader = req.headers.authorization;
         if (!authHeader || authHeader !== `Bearer ${process.env.ADMIN_BEARER}`) {
             return res.status(401).json({ error: 'Unauthorized' });
@@ -567,11 +584,15 @@ async function handleMessage(message) {
             },
         });
     } else if (text === '/mycard') {
-        const result = await pool.query('SELECT card_number FROM users WHERE telegram_id = $1', [chatId]);
-        const cardText = result.rows.length > 0 
-            ? `Your loyalty card number is: ${result.rows[0].card_number}` 
-            : 'You don\'t have a card yet. Open the app to get one!';
-        await sendTelegram('sendMessage', process.env.BOT_TOKEN, { chat_id: chatId, text: cardText });
+        if (!pool) {
+            await sendTelegram('sendMessage', process.env.BOT_TOKEN, { chat_id: chatId, text: 'Service is in test mode. Open the app to see your card!' });
+        } else {
+            const result = await pool.query('SELECT card_number FROM users WHERE telegram_id = $1', [chatId]);
+            const cardText = result.rows.length > 0 
+                ? `Your loyalty card number is: ${result.rows[0].card_number}` 
+                : 'You don\'t have a card yet. Open the app to get one!';
+            await sendTelegram('sendMessage', process.env.BOT_TOKEN, { chat_id: chatId, text: cardText });
+        }
     }
 }
 
