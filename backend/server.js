@@ -376,7 +376,7 @@ app.post('/api/order', async (req, res) => {
             dbUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [user.id]);
         }
 
-        // Notify admin channel (if configured)
+        // Notify admin channel (if configured) - MOVED OUTSIDE DATABASE BLOCK
         console.log('Checking Telegram notification config:', {
             hasAdminChannelId: !!process.env.ADMIN_CHANNEL_ID,
             hasBotToken: !!process.env.BOT_TOKEN,
@@ -846,6 +846,8 @@ app.get('/debug/config', (req, res) => {
         botTokenLength: process.env.BOT_TOKEN?.length,
         hasSheetsCardsUrl: !!process.env.SHEETS_CARDS_WEBHOOK_URL,
         hasDatabase: !!process.env.DATABASE_URL,
+        databaseUrl: process.env.DATABASE_URL,
+        hasPool: !!pool,
         testMode: !process.env.DATABASE_URL || process.env.DATABASE_URL === 'base'
     });
 });
