@@ -373,7 +373,19 @@ app.post('/api/order', async (req, res) => {
                 };
                 console.log('Sending Telegram notification for order:', short_id);
                 await notifyAdminChannel(orderData);
-                console.log('Telegram notification sent successfully');
+                console.log('Admin notification sent successfully');
+                
+                // Send personal notification to customer (skip for test users)
+                if (initData !== 'test') {
+                    try {
+                        await notifyCustomer(orderData);
+                        console.log('Customer notification sent successfully');
+                    } catch (customerNotifyError) {
+                        console.error('Failed to notify customer:', customerNotifyError);
+                    }
+                } else {
+                    console.log('Skipping customer notification - test mode');
+                }
             } catch (notifyError) {
                 console.error('Failed to notify admin:', notifyError);
             }
@@ -642,6 +654,102 @@ ${itemsList}
 
     await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
         chat_id: process.env.ADMIN_CHANNEL_ID,
+        text: message,
+        parse_mode: 'Markdown',
+    });
+}
+
+// Customer notification translations
+const customerNotificationTexts = {
+    en: {
+        title: '☕ **Thank you for your order!**',
+        orderNumber: '🎫 **Order #',
+        yourItems: '📋 **Your Items:**',
+        readyIn: '⏰ **Ready in:**',
+        payment: '💳 **Payment:**',
+        total: '💰 **Total:**',
+        starsEarned: '⭐ **Stars Earned:**',
+        footer: 'We\'ll start preparing your order shortly. Thank you for choosing Willow Coffee! ☕',
+        takeaway: 'Takeaway',
+        table: 'Table',
+        now: 'Now',
+        minutes: 'minutes',
+        cash: 'Cash',
+        stars: 'Stars'
+    },
+    ru: {
+        title: '☕ **Спасибо за ваш заказ!**',
+        orderNumber: '🎫 **Заказ №',
+        yourItems: '📋 **Ваши товары:**',
+        readyIn: '⏰ **Будет готов через:**',
+        payment: '💳 **Оплата:**',
+        total: '💰 **Итого:**',
+        starsEarned: '⭐ **Звёзд получено:**',
+        footer: 'Мы скоро начнём готовить ваш заказ. Спасибо, что выбрали Willow Coffee! ☕',
+        takeaway: 'На вынос',
+        table: 'Столик',
+        now: 'Сейчас',
+        minutes: 'минут',
+        cash: 'Наличные',
+        stars: 'Звёзды'
+    },
+    sr: {
+        title: '☕ **Hvala Vam na porudžbini!**',
+        orderNumber: '🎫 **Narudžba #',
+        yourItems: '📋 **Vaše stavke:**',
+        readyIn: '⏰ **Spremno za:**',
+        payment: '💳 **Plaćanje:**',
+        total: '💰 **Ukupno:**',
+        starsEarned: '⭐ **Zvezda dobijeno:**',
+        footer: 'Uskoro počinjemo sa pripremom. Hvala što ste izabrali Willow Coffee! ☕',
+        takeaway: 'Za poneti',
+        table: 'Sto',
+        now: 'Sada',
+        minutes: 'minuta',
+        cash: 'Gotovina',
+        stars: 'Zvezde'
+    }
+};
+
+async function notifyCustomer(orderData) {
+    const { short_id, user, eta_minutes, total_amount, stars_added, items, table_number, payment_method } = orderData;
+    
+    // Determine user's language (default to English)
+    const userLang = user.language_code === 'ru' ? 'ru' : user.language_code === 'sr' ? 'sr' : 'en';
+    const t = customerNotificationTexts[userLang];
+    
+    // Format ETA
+    const etaText = eta_minutes === 0 ? t.now : `${eta_minutes} ${t.minutes}`;
+    
+    // Format table
+    const tableText = table_number === 'takeaway' ? t.takeaway : `${t.table} ${table_number}`;
+    
+    // Format payment method  
+    const paymentText = payment_method === 'cash' ? t.cash : `${t.stars} (${Math.ceil(total_amount / 350)} ⭐)`;
+    
+    // Format items
+    const itemsList = items.map(item => `• ${item.name} x${item.quantity} - ${item.price} RSD`).join('\n');
+    
+    // Build customer notification message
+    const message = `${t.title}
+
+${t.orderNumber}${short_id}**
+
+${t.yourItems}
+${itemsList}
+
+📍 **${tableText}**
+${t.readyIn} ${etaText}
+${t.payment} ${paymentText}
+
+${t.total} ${total_amount} RSD
+${t.starsEarned} +${stars_added} ⭐
+
+${t.footer}`;
+
+    // Send to customer's private chat
+    await sendTelegram('sendMessage', process.env.BOT_TOKEN, {
+        chat_id: user.id,
         text: message,
         parse_mode: 'Markdown',
     });
